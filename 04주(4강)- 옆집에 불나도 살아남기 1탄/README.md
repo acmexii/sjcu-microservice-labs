@@ -116,4 +116,6 @@ http :8082/inventories id=1 stock=10000
 java.lang.RuntimeException: Hystrix circuit short-circuited and is OPEN
 
 ```
-> 서킷 브레이커가 발동하여 오류가 발생한 것을 확인할 수 있다.
+
+#### 주문팀은 임계치를 초과한 요청에 대해, 커넥션을 끊음으로해서 동기호출에서의 장애가 원천 차단되고 있음을 확인할 수 있다.
+
