@@ -1,6 +1,6 @@
 # Prerequisites for using Microservice Lab
 
-## 마이크로서비스응용및활용 Git 주소 : https://github.com/acmexii/sjcu-microservice-labs
+- 마이크로서비스응용및활용 Git 주소 : https://github.com/acmexii/sjcu-microservice-labs
 
 - 본 학기 실습은 온라인 이벤트스토밍 도구인 MSAEz(https://labs.msaez.io)와 온라인 개발환경인 GitPod에서 진행된다.
 
