@@ -7,7 +7,7 @@
 - MSAEz는 마이크로서비스의 최신 분석/설계 방법론인 EventStorming을 온라인 환경에서 완벽 제공해 주는 혁신적인 도구이다. 
 
 - GitPod는 Git기반 형상서버인 Github, 또는 Gitlab상에서 VSCode 등 통합 IDE 도구를 제공해 주는 무료 플랫폼이다.
-- GitPod는 웹브라우저 Github 레포지토리 URL앞에 gitpod.io/# 를 붙이면 손쉽게 Gitpod IDE로 들어갈 수 있다.
+- GitPod는 웹브라우저 Github 레포지토리 URL앞에 **gitpod.io/#** 를 붙이면 손쉽게 Gitpod IDE로 들어갈 수 있다.
 
 
 ## Prepare Browsser & GitHub Account
