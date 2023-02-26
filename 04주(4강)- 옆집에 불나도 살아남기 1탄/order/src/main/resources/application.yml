@@ -1,0 +1,85 @@
+server:
+  port: 8080
+feign:
+  hystrix:
+    enabled: false
+hystrix:
+  command:
+    default:
+      execution.isolation.thread.timeoutInMilliseconds: 500
+spring:
+  application:
+    name: order
+---
+
+spring:
+  profiles: default
+  jpa:
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+        streams:
+          binder:
+            configuration:
+              default:
+                key:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                value:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      bindings:
+        event-in:
+          group: order
+          destination: labshoppubsub
+          contentType: application/json
+        event-out:
+          destination: labshoppubsub
+          contentType: application/json
+
+logging:
+  level:
+    org.hibernate.type: trace
+    org.springframework.cloud: debug
+
+api:
+  url:
+    inventory: localhost:8082
+
+server:
+  port: 8081
+
+---
+
+spring:
+  profiles: docker
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: my-kafka:9092
+        streams:
+          binder:
+            configuration:
+              default:
+                key:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                value:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      bindings:
+        event-in:
+          group: order
+          destination: labshoppubsub
+          contentType: application/json
+        event-out:
+          destination: labshoppubsub
+          contentType: application/json
+
+api:
+  url:
+    inventory: inventory:8080
+
