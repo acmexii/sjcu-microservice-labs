@@ -67,7 +67,7 @@ kubectl run my-kafka-client --restart='Never' --image docker.io/bitnami/kafka:2.
 kubectl exec --tty -i my-kafka-client -- bash
 
 # CONSUMER:
-kafka-console-consumer.sh --bootstrap-server my-kafka:9092 --topic TOPIC --from-beginning
+kafka-console-consumer.sh --bootstrap-server my-kafka:9092 --topic labshoppubsub --from-beginning
 ```
 
 
