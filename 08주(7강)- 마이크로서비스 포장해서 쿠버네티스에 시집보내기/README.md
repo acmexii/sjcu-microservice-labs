@@ -127,7 +127,6 @@ Text Editor(windows - 메모장)이 반드시 필요하며, 설명 중간중간 
 ![image](https://user-images.githubusercontent.com/35618409/187328088-7295b12a-c1de-498f-a3d0-2a2c312f8b9e.png)
 
 - GitPod에 접속하면 터미널상에 스크립트가 자동 실행되면서 로딩이 완료된다.
-- (혹시 Prompt가 물어보면 'A'를 입력하자.) 
 - 터미널 로딩이 완료된 후, 쿠버네티스 클라이언트 설정을 위해 아래 Command를 입력한다.
 - 나타나는 각 항목의 Value에 Text Editor에 있는, 또는 Learner Lab에서 조회된 정보를 입력한다.
 ```
