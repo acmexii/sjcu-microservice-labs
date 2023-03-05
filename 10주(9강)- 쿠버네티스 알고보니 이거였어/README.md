@@ -1,161 +1,122 @@
-## 옆집에 불나도 살아남기
+## 쿠버네티스 알고보니 이거였어 
+
+### 주문서비스 생성하기 
 
 
-### 이벤트스토밍 모델
-
-<img width="899" alt="image" src="https://user-images.githubusercontent.com/487999/190903135-a6bb95c0-d1f6-424e-9444-1bbf0119386a.png">
-
-
-### 모델에 대한 마이크로서비스 코드 확인
-
-- Github URL을 활용하여 GitPod로 접속한다.
-- 04주(4강)-옆집에 불나도 살아남기 1탄 폴더로 이동한다.
-
-- order/../Order.java 의 @PrePersist
-```
-    @PrePersist
-    public void onPrePersist() {
-        // Get request from Inventory
-        Inventory inventory =
-           Application.applicationContext.getBean(InventoryService.class)
-           .getInventory(Long.valueOf(getProductId()));
-
-        if(inventory.getStock() < getQty()) throw new RuntimeException("Out of Stock!");
-
-    }
-```
-> 재고 서비스를 호출한 결과 얻은 재고량을 확인하여 재고가 주문량에 못 미치면 오류를 내도록 하는 검증 로직을 추가
-
-- order/../external/InventoryService.java
-```
-@FeignClient(name = "inventory", url = "${api.url.inventory}")
-public interface InventoryService {
-    @RequestMapping(method = RequestMethod.GET, path = "/inventories/{id}")
-    public Inventory getInventory(@PathVariable("id") Long id);
-
-  ...
-}
-```
-> 재고량을 얻기 위한 GET 호출의 FeignClient Interface 확인
-
-
-
-### 서킷브레이커 설정전 주문해 보기 
-- monolith(Order) 서비스와 inventory 서비스를 실행한다. 
-```
-cd order
-mvn clean spring-boot:run
-
-cd inventory
-mvn clean spring-boot:run
-```
-- 충분한 재고량을 입력한다.
-```
-http :8082/inventories id=1 stock=10000
-```
-- 부하 툴을 사용하여 동시사용자 2명의 10초간의 주문을 넣어본다.
--> sudo apt install siege -y 을 통해 설치
+- 도커 허브에 저장된 주문 이미지으로 서비스 배포 및 확인하기
 
 ```
-siege -c2 -t10S  -v --content-type "application/json" 'http://localhost:8081/orders POST {"productId":1, "qty":1}'
+kubectl create deploy order --image=jinyoung/monolith-order:v202105042
+kubectl get all  # 모든 객체 조회
+kubectl get po # pod 객체만 조회 (pod name 확인)
 ```
-		
-> 모든 호출이  201 Code 로 성공함을 알 수 있다.
 
 
-### 옆집에 불내기와 살아남기 위한 설정
+### 주문서비스 삭제해 보기 
 
-- inventory 서비스의 Inventory.java 에 성능이 느려지도록 강제 딜레이를 발생시키는 코드를 추가한다.  
+```
+# New Terminal (관측용)
+watch kubectl get pod
+kubectl delete pod -l app=order 
+```
+
+- Pod를 삭제해도 새로운 Pod로 서비스가 재생성됨을 확인
 
 
-   ```java
-    @PostLoad
-    public void makeDelay(){
-        try {
-            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+### 클라우드 외부에서도 접근 가능하도록 노출하기
+
+```
+kubectl expose deploy order --type=LoadBalancer --port=8080
+kubectl get service 
+```
+
+> External IP를 얻어오는데 오래걸리거나, ALB 등이 연결되는데 시간이 걸리는 경우 다음의 port-forwarding 명령으로 localhost 에 접속할 수 있다: 
+```
+# 새 터미널
+kubectl port-forward deploy/order 8080:8080
+
+# 다른 터미널
+curl localhost:8080
+```
+
+- Service 정보의 External IP가 Pending 상태에서 IP정보로 변경시까지 대기하기
+- 엔드포인트를 통해 서비스 확인 - http://(IP정보):8080/orders
+- Ctrl + C를 눌러 모니터링 모드 종료하기 
+
+접속테스트:
+```
+# http a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Wed, 26 May 2021 06:26:06 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "deliveries": {
+            "href": "http://a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/deliveries{?page,size,sort}",
+            "templated": true
+        },
+        "orders": {
+            "href": "http://a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/orders{?page,size,sort}",
+            "templated": true
+        },
+        "productOptions": {
+            "href": "http://a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/productOptions"
+        },
+        "products": {
+            "href": "http://a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/products{?page,size,sort}",
+            "templated": true
+        },
+        "profile": {
+            "href": "http://a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/profile"
         }
-
-    }
-
-```
-
-- monolith(Order) 서비스의 application.yaml 파일의 다음 설정을 true 로 하고, 임계치를 610ms로 바꾼다:  
-
-```yaml
-  
-    feign:
-      hystrix:
-        enabled: true
-    
-    hystrix:
-      command:
-        # 전역설정
-        default:
-          execution.isolation.thread.timeoutInMilliseconds: 610
-```
-
-
-
-### 서킷브레이커 설정후 주문해 보기 
-
-- monolith와 inventory 서비스를 모두 재시작한다. 
-- 재시작 후, 인벤트로의 재고량을 충분히 설정한다:
-```
-http :8082/inventories id=1 stock=10000
-```
-- 다시 부하 툴을 사용하여 주문을 넣어본다.  
-    ```
-    siege -c2 -t20S  -v --content-type "application/json" 'http://localhost:8081/orders POST {"productId":1, "qty":1}'
-    ```
-> Delay 가 발생함에 따라 적당히 201 code 와 500 오류 코드가 반복되며 inventory 로 부하를 조절하면서 요청을 관리하는 것을 확인할 수 있다.
-> 결과적으로 Availability 는 60~90% 수준이 유지되면서 서비스는 유지된다.
-
-- monolith(Order) 서비스의 로그를 확인:
-```
-java.lang.RuntimeException: Hystrix circuit short-circuited and is OPEN
-
-```
-> 서킷 브레이커가 발동하여 오류가 발생한 것을 확인할 수 있다.
-
-
-### fallback 처리 (장애시에 적당한 대체값)
-
-- inventory 서비스가 중지된 상태로 주문을 넣어본다. ( 500 에러 )
-
-```
-http localhost:8081/orders productId=1 qty=1 
-```
-
-- order 서비스의 external/InventoryService.java 의 FeignClient에 fallback 옵션을 설정한다.
-- 10라인 FeignClient 설정을 아래 코드로 Replace 한다.    
- ```
-@FeignClient(name = "inventory", url = "${api.url.inventory}", fallback = InventoryServiceFallback.class)
- ```
- 
-- monolith(Order) 서비스에 Fallback 구현체를 추가한다:
-- external 패키지 상에서 New File >  InventoryServiceFallback.java 파일을 생성하고 아래 샘플코드를 붙여넣는다.
-```
-package labshoppubsub.external;
-
-import org.springframework.stereotype.Service;
-
-@Service
-public class InventoryServiceFallback implements InventoryService{
-    public Inventory getInventory(Long id){
-        Inventory fallbackValue = new Inventory();
-        fallbackValue.setStock(1L);
-
-        return fallbackValue;
     }
 }
 ```
 
-- monolith(Order) 서비스를 재실행 후 주문을 넣어본다. ( 주문 가능 )
-    - 이때 inventory 서비스는 중지 상태 이어야 한다.  
-    - InventoryServiceImpl 의 getInventory 메서드가 실행되어 적당한 가짜 값인 1이 리턴되어 재고량이 있는 것으로 리턴하게 하는 것을 확인할 수 있다. 
+
+### 주문서비스 인스턴스 확장(Scale-Out) 하기 (수동)
 
 ```
-http localhost:8081/orders productId=1 qty=1   # will succeed!
+kubectl scale deploy order --replicas=3
+kubectl get pod
+```
+
+- 주문서비스의 인스턴스(Pod)가 3개로 확장됨을 확인
+
+
+### YAML 기반 서비스 배포하기
+
+- GitPod > Lab 폴더 마우스 오른쪽 클릭 > New File > order.yaml 입력
+- 아래 내용 복사하여 붙여넣기
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-by-yaml
+  labels:
+    app: order
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+    spec:
+      containers:
+        - name: order
+          image: jinyoung/monolith-order:v20210504
+          ports:
+            - containerPort: 8080        
+```
+
+- 입력 후, 저장
+```
+- kubectl apply -f order.yaml 
+- kubectl get all 
 ```

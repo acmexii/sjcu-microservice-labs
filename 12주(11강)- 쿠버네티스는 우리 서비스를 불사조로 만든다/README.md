@@ -1,161 +1,269 @@
-## 옆집에 불나도 살아남기
+## 쿠버네티스는 우리 서비스를 불사조로 만든다
+
+클라우드의 리소스를 잘 활용하기 위해서는 요청이 적을때는 최소한의 Pod 를 유지한 후에 요청이 많아질 경우 Pod를 확장하여 요청을 처리할 수 있다.  
+Pod 를 Kubernetes에서 수평적으로 확장하는 방법을 HorizontalPodAutoscaler(HPA) 라고 부른다. replicas 를 관리하는 Deployment, StatefulSet 에 적용이 가능하고, 확장이 불가능한 DaemonSets 에는 설정이 불가능하다.  
+
+HPA는 워크로드의 CPU 또는 메모리를 측정하여 작동하기 때문에 Kubernetes 에 metric server가 필수적으로 설치가 되어있어야 한다.
+
+이번시간에는 HPA 설정을 적용 한 후에, siege 라는 부하 테스트 툴을 사용하여 서비스에 부하를 주어 Pod 가 Auto Scale-Out 되는 과정을 실습한다.
 
 
-### 이벤트스토밍 모델
-
-<img width="899" alt="image" src="https://user-images.githubusercontent.com/487999/190903135-a6bb95c0-d1f6-424e-9444-1bbf0119386a.png">
-
-
-### 모델에 대한 마이크로서비스 코드 확인
-
-- Github URL을 활용하여 GitPod로 접속한다.
-- 04주(4강)-옆집에 불나도 살아남기 1탄 폴더로 이동한다.
-
-- order/../Order.java 의 @PrePersist
-```
-    @PrePersist
-    public void onPrePersist() {
-        // Get request from Inventory
-        Inventory inventory =
-           Application.applicationContext.getBean(InventoryService.class)
-           .getInventory(Long.valueOf(getProductId()));
-
-        if(inventory.getStock() < getQty()) throw new RuntimeException("Out of Stock!");
-
-    }
-```
-> 재고 서비스를 호출한 결과 얻은 재고량을 확인하여 재고가 주문량에 못 미치면 오류를 내도록 하는 검증 로직을 추가
-
-- order/../external/InventoryService.java
-```
-@FeignClient(name = "inventory", url = "${api.url.inventory}")
-public interface InventoryService {
-    @RequestMapping(method = RequestMethod.GET, path = "/inventories/{id}")
-    public Inventory getInventory(@PathVariable("id") Long id);
-
-  ...
-}
-```
-> 재고량을 얻기 위한 GET 호출의 FeignClient Interface 확인
-
-
-
-### 서킷브레이커 설정전 주문해 보기 
-- monolith(Order) 서비스와 inventory 서비스를 실행한다. 
-```
-cd order
-mvn clean spring-boot:run
-
-cd inventory
-mvn clean spring-boot:run
-```
-- 충분한 재고량을 입력한다.
-```
-http :8082/inventories id=1 stock=10000
-```
-- 부하 툴을 사용하여 동시사용자 2명의 10초간의 주문을 넣어본다.
--> sudo apt install siege -y 을 통해 설치
+### 선행 과정
 
 ```
-siege -c2 -t10S  -v --content-type "application/json" 'http://localhost:8081/orders POST {"productId":1, "qty":1}'
-```
-		
-> 모든 호출이  201 Code 로 성공함을 알 수 있다.
-
-
-### 옆집에 불내기와 살아남기 위한 설정
-
-- inventory 서비스의 Inventory.java 에 성능이 느려지도록 강제 딜레이를 발생시키는 코드를 추가한다.  
-
-
-   ```java
-    @PostLoad
-    public void makeDelay(){
-        try {
-            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-    }
-
+kubectl create deploy order --image=jinyoung/monolith-order:v20210504
+kubectl expose deploy order --port=8080
 ```
 
-- monolith(Order) 서비스의 application.yaml 파일의 다음 설정을 true 로 하고, 임계치를 610ms로 바꾼다:  
+- 부하 테스트 Pod 설치
+  - 워크로드 생성기를 설치하여 자동 확장 랩에 활용한다.
+  - 아래 스크립트를 terminal 에 복사하여 siege 라는 Pod 를 생성한다.
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+    name: siege
+spec:
+    containers:
+    - name: siege
+    image: apexacme/siege-nginx
+EOF
+```
+  - 생성된 siege Pod 안쪽에서 정상작동 확인
+```
+kubectl exec -it siege -- /bin/bash
+siege -c1 -t2S -v http://order:8080/orders
+exit
+```
 
-```yaml
-  
-    feign:
-      hystrix:
-        enabled: true
-    
-    hystrix:
-      command:
-        # 전역설정
-        default:
-          execution.isolation.thread.timeoutInMilliseconds: 610
+- Metric server 설치 확인 방법
+  - kubectl top pods 를 실행했을때, 아래와 같이 정보가 나오면 설치가 되어있다.
+```
+NAME                     CPU(cores)   MEMORY(bytes)   
+order-684647ccf9-ltlqg   3m           288Mi           
+siege                    0m           8Mi   
+```
+- "error: Metrics API not available" 메시지가 나오면 metric server가 설치되지 않은은 것으로 아래와 같은 명령어로 설치한다.
+> kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+> kubectl get deployment metrics-server -n kube-system
+
+### Auto Scale-Out 설정
+
+1.0 Auto Scaler를 설정한다
+- 오토 스케일링 설정명령어 호출
+```
+kubectl autoscale deployment order --cpu-percent=50 --min=1 --max=3
+```
+
+- "cpu-percent=50 : Pod 들의 요청 대비 평균 CPU 사용율(YAML Spec.에서 요청량이 200 milli-cores일때, 모든 Pod의 평균 CPU 사용율이 100 milli-cores(50%)를 넘게되면 HPA 발생)"
+
+- kubectl get hpa 명령어로 설정값을 확인 한다.
+```
+NAME    REFERENCE          TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+order   Deployment/order   <unknown>/20%   1         3         0          7s
 ```
 
 
-
-### 서킷브레이커 설정후 주문해 보기 
-
-- monolith와 inventory 서비스를 모두 재시작한다. 
-- 재시작 후, 인벤트로의 재고량을 충분히 설정한다:
-```
-http :8082/inventories id=1 stock=10000
-```
-- 다시 부하 툴을 사용하여 주문을 넣어본다.  
-    ```
-    siege -c2 -t20S  -v --content-type "application/json" 'http://localhost:8081/orders POST {"productId":1, "qty":1}'
-    ```
-> Delay 가 발생함에 따라 적당히 201 code 와 500 오류 코드가 반복되며 inventory 로 부하를 조절하면서 요청을 관리하는 것을 확인할 수 있다.
-> 결과적으로 Availability 는 60~90% 수준이 유지되면서 서비스는 유지된다.
-
-- monolith(Order) 서비스의 로그를 확인:
-```
-java.lang.RuntimeException: Hystrix circuit short-circuited and is OPEN
+1.1 배포파일에 CPU 요청에 대한 값을 지정한다.
+- Gitpod의 order > kubernetes 폴더로 이동하여 deployment.yaml 파일을 수정한다.
+- 19 Line 의 image 을 **jinyoung/monolith-order:v20210602**
+  로 변경한다.
+- 21과 22 Line의 ports 와 readinessProbe 사이에 resources.requests.cpu: "200m"을 추가한다.
+- indent 에 주의하여 파일을 저장한다.
 
 ```
-> 서킷 브레이커가 발동하여 오류가 발생한 것을 확인할 수 있다.
 
-
-### fallback 처리 (장애시에 적당한 대체값)
-
-- inventory 서비스가 중지된 상태로 주문을 넣어본다. ( 500 에러 )
+		ports:
+          - containerPort: 8080
+        resources:
+          requests:
+            cpu: "200m"
+        readinessProbe:
 
 ```
-http localhost:8081/orders productId=1 qty=1 
+
+1.2 터미널을 열어서 변경된 yaml 파일을 사용하여 쿠버네티스에 배포한다.
+- cd order/kubernetes
+- kubectl delete -f deployment.yaml
+- kubectl apply -f deployment.yaml
+
+1.3 배포 완료 후 kubectl get deploy order -o yaml 명령을 쳐서 image 와 resources의 값이 정상적으로 설정되어있는지 확인
+- kubectl get po 실행하여 STATUS가 정상적으로 Running 상태 확인
+
+
+### Auto Scale-Out 증명
+
+
+2.1 새로운 터미널을 열어서 seige 명령으로 부하를 주어서 Pod 가 늘어나도록 한다.
+```
+kubectl exec -it siege -- /bin/bash
+siege -c20 -t40S -v http://order:8080/orders
+exit
 ```
 
-- order 서비스의 external/InventoryService.java 의 FeignClient에 fallback 옵션을 설정한다.
-- 10라인 FeignClient 설정을 아래 코드로 Replace 한다.    
- ```
-@FeignClient(name = "inventory", url = "${api.url.inventory}", fallback = InventoryServiceFallback.class)
- ```
+2.2 터미널 1개는 kubectl get po -w 명령을 사용하여 pod 가 생성되는 것을 확인한다.
+```
+order-7b76557b8f-bgptv   1/1     Running   0          34m
+siege                    1/1     Running   0          33m
+order-7b76557b8f-7g9d6   0/1     Pending   0          0s
+order-7b76557b8f-hmssb   0/1     Pending   0          0s
+order-7b76557b8f-7g9d6   0/1     ContainerCreating   0          0s
+order-7b76557b8f-hmssb   0/1     ContainerCreating   0          0s
+order-7b76557b8f-7g9d6   0/1     Running             0          6s
+order-7b76557b8f-hmssb   0/1     Running             0          6s
+order-7b76557b8f-7g9d6   1/1     Running             0          23s
+order-7b76557b8f-hmssb   1/1     Running             0          27s
+``` 
+
+2.3 kubectl get hpa 명령어로 CPU 값이 늘어난 것을 확인 한다.
+```
+NAME    REFERENCE          TARGETS     MINPODS   MAXPODS   REPLICAS   AGE
+order   Deployment/order   1152%/20%   1         3         3          37m
+```
+
+
+
+## 무정지 배포 실습 (readinessProbe, 제로 다운타임)
+
+클러스터에 배포를 할때 readinessProbe 설정이 없으면 다운타임이 존재 하게 된다. 이는 쿠버네티스에서 Ramped 배포 방식으로 무정지 배포를 시도 하지만, 서비스가 기동하는 시간이 있기 때문에 기동 시간동안에 트래픽이 유입되면 장애가 발생 할 수 있다.  
+
+배포시 다운타임의 존재 여부를 확인하기 위하여, siege 라는 부하 테스트 툴을 사용한다.  
+배포시작전에 부하테스트 툴을 실행하고, 배포 완료시 종료한 후, 결과값인 Availability 를 체크 하여 어느정도의 실패가 있었는지를 확인한다.
+
+- 먼저 이전 실습에서 생성된 주문과 HPA 객체를 삭제한다.
+```
+kubectl delete deploy order,hpa --all
+```
+
+- Lab 폴더 마우스 오른쪽 클릭 > New File > deployment.yaml 입력
+- 아래 내용 복사하여 붙여넣기
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  labels:
+    app: order
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+    spec:
+      containers:
+        - name: order
+          image: jinyoung/order:stable
+          ports:
+            - containerPort: 8080
+```
+
+- 주문서비스를 배포한다:
+```
+kubectl apply -f deployment.yaml
+```
+
+서비스 객체를 위한 yaml도 만든다:
+
+```
+apiVersion: "v1"
+kind: "Service"
+metadata: 
+  name: "order"
+  labels: 
+    app: "order"
+spec: 
+  ports: 
+    - 
+      port: 8080
+      targetPort: 8080
+  selector: 
+    app: "order"
+  type: "ClusterIP"
+```
+를 붙여넣기 하여 생성한 다음,
+
+```
+kubectl apply -f service.yaml
+```
+로 서비스 객체를 생성한다.
+
+
+- 새로운 터미널을 오픈하고, Siege로 접속해 주문서비스 정상작동 확인
+```
+kubectl exec -it siege -- /bin/bash
+siege -c1 -t2S -v http://order:8080/orders
+```
  
-- monolith(Order) 서비스에 Fallback 구현체를 추가한다:
-- external 패키지 상에서 New File >  InventoryServiceFallback.java 파일을 생성하고 아래 샘플코드를 붙여넣는다.
+### 1. readinessProbe 가 없는 상태에서 배포 진행
+
+1.1 새 버전을 배포할 준비를 한다:
+deployment.yaml 의 이미지 정보를 아래와 같이 변경한 후 (19라인):
 ```
-package labshoppubsub.external;
-
-import org.springframework.stereotype.Service;
-
-@Service
-public class InventoryServiceFallback implements InventoryService{
-    public Inventory getInventory(Long id){
-        Inventory fallbackValue = new Inventory();
-        fallbackValue.setStock(1L);
-
-        return fallbackValue;
-    }
-}
+image: jinyoung/order:canary
 ```
 
-- monolith(Order) 서비스를 재실행 후 주문을 넣어본다. ( 주문 가능 )
-    - 이때 inventory 서비스는 중지 상태 이어야 한다.  
-    - InventoryServiceImpl 의 getInventory 메서드가 실행되어 적당한 가짜 값인 1이 리턴되어 재고량이 있는 것으로 리턴하게 하는 것을 확인할 수 있다. 
+1.2 새로운 터미널을 열어서 충분한 시간만큼 부하를 준다.
 
 ```
-http localhost:8081/orders productId=1 qty=1   # will succeed!
+kubectl exec -it siege -- /bin/bash
+siege -c1 -t60S -v http://order:8080/orders --delay=1S
+```
+
+1.3. 배포를 반영한다:
+
+```
+kubectl apply -f deployment.yaml
+```
+
+1.5 siege 로그를 보면서 배포시 정지시간이 발생한것을 확인한다.
+```
+Transactions:                     82 hits
+Availability:                  70.09 %
+Elapsed time:                  59.11 secs
+```
+
+### 2. readinessProbe 를 설정하고 배포 진행
+
+2.1 아래와 같이 readiness 설정을 주입한다:
+
+```
+    spec:
+      containers:
+        - name: order
+				  ...
+          readinessProbe:    # 이부분!
+            httpGet:
+              path: '/orders'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+```
+2.2. image 명도 변경한다 (19라인):
+```
+				image: jinyoung/order:stable
+```
+
+2.2 siege 터미널을 열어서 충분한 시간만큼 부하를 준다.
+
+```
+kubectl exec -it siege -- /bin/bash
+siege -c1 -t60S -v http://order:8080/orders --delay=1S
+```
+
+2.3 수정된 주문 서비스를 적용하여 배포한다
+- kubectl apply -f deployment.yaml
+
+
+2.5 siege 로그를 보면서 배포시 무정지로 배포된 것을 확인한다.
+```
+Transactions:                    112 hits
+Availability:                 100.00 %
+Elapsed time:                  59.58 secs
 ```
