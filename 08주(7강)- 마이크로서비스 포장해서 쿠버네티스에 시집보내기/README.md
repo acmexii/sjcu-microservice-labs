@@ -2,19 +2,15 @@
 
 
 - Academy Learner Lab을 통해 아마존 AWS에 Kubernetes를 설치하고 쿠버네티스 클라이언트와 연동하는 내용이다.  
-Text Editor(windows - 메모장)이 반드시 필요하며, 설명 중간중간 Text Editor에 메모 요구가 나오면 이후 사용을 위해 반드시 메모하면서 진행한다.
+Text Editor(windows - 메모장)가 반드시 필요하며, 실습 중간중간 Text Editor에 향후 필요한 정보를 메모해 가면서 진행한다.
 
 - 사전 환경
   > AWS Learner Lab 로그인 필수 (아래 참조)
-  
-  > Gitpod based 랩환경 사전설정 필수
-[(Gitpod-based Lab Environments 참고링크)](https://github.com/acmexii/msaez-labs/tree/main/06%EA%B0%95_Sample-Order-Microservice#configure-web-based-rumtime-environments)
-
 
 ### Connect to AWS Learner Lab & Ignition
 - AWS Academy Lab - https://awsacademy.instructure.com/ 에 발급받은 접속정보로 로그인한다.
 - 대쉬보드 > 모듈 > Learner Lab을 클릭한다.
-![image](https://user-images.githubusercontent.com/35618409/222940495-5f310a2a-ace6-4e31-8da2-d80977fd8866.png)
+![image](https://user-images.githubusercontent.com/35618409/222940610-d9e8c897-5114-4841-a2c7-8c85468a28d1.png)
 - 아래와 같이 터미널이 출력된다.
 ![image](https://user-images.githubusercontent.com/35618409/187118347-117ab92b-450d-4e6b-a3da-c5f4d5e90e91.png)
 - 터미널 상단의 "▶Start Lab"을 클릭하여 터미널을 활성화한다.
