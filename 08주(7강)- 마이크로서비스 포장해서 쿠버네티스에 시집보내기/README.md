@@ -1,7 +1,5 @@
-## AWS에 쿠버네티스 만들고 마이크로서비스 배포하기
+## 아마존 클라우드(AWS)에 쿠버네티스 서비스 만들기
 
-
-## 쿠버네티스 만들기
 
 - Academy Learner Lab을 통해 아마존 AWS에 Kubernetes를 설치하고 쿠버네티스 클라이언트와 연동하는 내용이다.  
 Text Editor(windows - 메모장)이 반드시 필요하며, 설명 중간중간 Text Editor에 메모 요구가 나오면 이후 사용을 위해 반드시 메모하면서 진행한다.
@@ -15,8 +13,8 @@ Text Editor(windows - 메모장)이 반드시 필요하며, 설명 중간중간 
 
 ### Connect to AWS Learner Lab & Ignition
 - AWS Academy Lab - https://awsacademy.instructure.com/ 에 발급받은 접속정보로 로그인한다.
-- 대쉬보드 > 모듈 > Learner Lab - Associate Services 클릭한다.
-![image](https://user-images.githubusercontent.com/35618409/187118228-d5a56653-ca93-440f-a855-18a72630c12e.png)
+- 대쉬보드 > 모듈 > Learner Lab을 클릭한다.
+![image](https://user-images.githubusercontent.com/35618409/222940495-5f310a2a-ace6-4e31-8da2-d80977fd8866.png)
 - 아래와 같이 터미널이 출력된다.
 ![image](https://user-images.githubusercontent.com/35618409/187118347-117ab92b-450d-4e6b-a3da-c5f4d5e90e91.png)
 - 터미널 상단의 "▶Start Lab"을 클릭하여 터미널을 활성화한다.
@@ -163,32 +161,3 @@ kubectl get all
 ```
 - service/kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   58m
 
-	
-## 주문서비스 쿠버네티스에 배포하기
-
-### 이미지 생성 및 배포
-
-- 주문 이미지 도커라이징
-```
-cd order
-mvn package 
-docker image build -t MY-DOCKER-ID/order:v0.1 .
-docker login 
-docker push 
-docker push MY-DOCKER-ID/order:v0.1
-```
-
-- GitPod 터미널을 활용하여 주문 서비스 배포하기
-```
-kubectl create deploy order --name=MY-DOCKER-ID/order:v0.1
-kubectl get all
-```
-
-### YAML 형식으로 배포해 보기
-```
-kubectl delete deploy order
-cd kubernetes
-# 19라인을 내 이미지 이름(MY-DOCKER-ID/order:v0.1) 으로 수정
-kubectl apply -f deployment.yaml
-kubectl get all
-```
