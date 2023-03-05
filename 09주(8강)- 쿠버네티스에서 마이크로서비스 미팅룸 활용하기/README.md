@@ -130,7 +130,7 @@ kubectl exec -it siege -c siege -- /bin/bash
 - 상품을 등록하고, 등록한 상품을 주문해 본다.
 - 카프카 클라이언트로 토픽상에 생성되는 도메인 이벤트를 확인한다.
 ```
-http :8082/inventories id=1 stock=10
-http :8081/orders productId=1 qty=5
-http :8082/inventories/1
+http http://inventory:8080/inventories id=1 stock=10
+http http://order:8080/orders productId=1 qty=5
+http http://inventory:8080/inventories/1
 ```
