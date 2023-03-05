@@ -8,7 +8,40 @@ HPA는 워크로드의 CPU 또는 메모리를 측정하여 작동하기 때문�
 이번시간에는 HPA 설정을 적용 한 후에, siege 라는 부하 테스트 툴을 사용하여 서비스에 부하를 주어 Pod 가 Auto Scale-Out 되는 과정을 실습한다.
 
 
-### 선행 과정
+### GitPod에 클라우드 환경 설정하기
+
+- AWS 클라우드에서 Kubernetes가 생성되어 있어야 한다. 
+- Kubernetes가 생성되어 있지 않으면 해당 Lab(08주 7강. AWS 클라우드에 쿠버네티스생성 실습)을 참조하여 생성한다.
+
+#### GitPod에 AWS Client Single Sign-On 설정
+- 먼저, https://awsacademy.instructure.com/ 에 들어가 Lab을 Start 한다.
+- AWS Details 메뉴에서 AWS CLI 옆 'Show'를 클릭한다.
+- 나타나는 모든 정보를 텍스트 에디터에 복사해 둔다.
+- 터미널에서 아래 내용대로 설정을 진행(매칭되는 정보입력) 한다. 
+```
+aws configure
+AWS Access Key ID [None]: # Value 입력
+AWS Secret Access Key [None]: # Value 입력
+Default region name [None]: us-east-1
+Default output format [None]: json
+```
+
+- 생성된 aws credentials 화일에 aws token을 추가한다.
+```
+vi ~/.aws/credentials
+# 맨 아래에 텍스트 에디터에 있는 aws_session_token 전체 행을 추가하고 저장한다.
+```
+
+#### GitPod에 Kubernetes Client Single Sign-On 설정
+
+- 내가 생성한 클러스터 이름으로 설정한다. (Cluster 이름이 abc-eks 일 경우)
+```
+aws eks update-kubeconfig --name abc-eks
+kubectl get all  # 확인
+```
+
+
+### 주문서비스 배포 및 라우터 생성
 
 ```
 kubectl create deploy order --image=jinyoung/monolith-order:v20210504
