@@ -7,6 +7,10 @@
 
 - 모델상의 고객센터(customercenter) 바운디드 컨텍스트의 MyPage CQRS모델을 확인한다.
 
+- 설계모델 확인
+```
+https://labs.msaez.io/#/storming/382a1a59e6ca5d3f0ad100b556df797a
+```
 
 ### 모델에 대한 마이크로서비스 코드 확인
 
