@@ -1,4 +1,4 @@
-## 아마존 클라우드(AWS)에 쿠버네티스 서비스 만들기
+## Kubernetes(EKS) Provisioning on AWS
 
 
 - Academy Learner Lab을 통해 아마존 AWS에 Kubernetes를 설치하고 쿠버네티스 클라이언트와 연동하는 내용이다.  
@@ -6,6 +6,7 @@ Text Editor(windows - 메모장)가 반드시 필요하며, 실습 중간중간 
 
 - 사전 환경
   > AWS Learner Lab 로그인 필수 (아래 참조)
+  > GitPod based 랩환경 사전설정 필수
 
 ### Connect to AWS Learner Lab & Ignition
 - AWS Academy Lab - https://awsacademy.instructure.com/ 에 발급받은 접속정보로 로그인한다.
