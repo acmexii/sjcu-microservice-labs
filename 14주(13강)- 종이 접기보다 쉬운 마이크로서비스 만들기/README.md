@@ -2,6 +2,8 @@
 
 ![image](https://user-images.githubusercontent.com/487999/79708354-29074a80-82fa-11ea-80df-0db3962fb453.png)
 
+![image](https://user-images.githubusercontent.com/35618409/229715832-8d90f525-8803-4299-8abb-3c10a92f299c.png)
+
 본 예제는 마이크로서비스응용및활용 과목의 기말고사 대체용으로 마이크로서비스를 직접 구현하고 쿠버네티스에 배포/운영한 결과 리포트 작성을 위한 가이드입니다.
 
 
