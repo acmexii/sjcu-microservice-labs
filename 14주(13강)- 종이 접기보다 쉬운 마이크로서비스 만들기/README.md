@@ -304,7 +304,7 @@ Concurrency:		       96.02
 
 - seige 로 배포작업 직전에 워크로드를 모니터링 함.
 ```
-siege -c100 -t120S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
+siege -c1 -t600S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
 
 ** SIEGE 4.0.5
 ** Preparing 100 concurrent users for battle.
