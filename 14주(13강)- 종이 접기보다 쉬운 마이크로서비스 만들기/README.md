@@ -141,7 +141,7 @@ public class 결제이력 {
     public Double get금액() {
         return 금액;
     }
-
+ 
     public void set금액(Double 금액) {
         this.금액 = 금액;
     }
