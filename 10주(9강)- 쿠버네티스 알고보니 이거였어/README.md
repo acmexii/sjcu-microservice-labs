@@ -49,8 +49,7 @@ kubectl get po # pod 객체만 조회 (pod name 확인)
 ### 주문서비스 삭제해 보기 
 
 ```
-# New Terminal (관측용)
-watch kubectl get pod
+# New Terminal 
 kubectl delete pod -l app=order 
 ```
 
@@ -64,18 +63,9 @@ kubectl expose deploy order --type=LoadBalancer --port=8080
 kubectl get service 
 ```
 
-> External IP를 얻어오는데 오래걸리거나, ALB 등이 연결되는데 시간이 걸리는 경우 다음의 port-forwarding 명령으로 localhost 에 접속할 수 있다: 
-```
-# 새 터미널
-kubectl port-forward deploy/order 8080:8080
-
-# 다른 터미널
-curl localhost:8080
-```
-
 - Service 정보의 External IP가 Pending 상태에서 IP정보로 변경시까지 대기하기
 - 엔드포인트를 통해 서비스 확인 - http://(IP정보):8080/orders
-- Ctrl + C를 눌러 모니터링 모드 종료하기 
+
 
 접속테스트:
 ```
@@ -150,6 +140,12 @@ spec:
 ```
 
 - 입력 후, 저장
+- 기존 서비스 종료하고 새로 배포해 보기
+```
+kubectl delete pod -l app=order 
+```
+
+- order.yaml 로 배포하고 생성된 객체 학인하기
 ```
 - kubectl apply -f order.yaml 
 - kubectl get all 
