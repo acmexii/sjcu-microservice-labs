@@ -234,7 +234,7 @@ kubectl exec -it siege -- /bin/bash
 siege -c1 -t2S -v http://order:8080/orders
 ```
  
-### 1. readinessProbe 가 없는 상태에서 배포 진행
+### 1. readinessProbe가 없는 상태에서 배포 진행
 
 1.1 새 버전을 배포할 준비를 한다:
 deployment.yaml 의 이미지 정보를 아래와 같이 변경한 후 (19라인):
@@ -270,7 +270,7 @@ Elapsed time:                  59.11 secs
     spec:
       containers:
         - name: order
-				  ...
+	  ...
           readinessProbe:    # 이부분!
             httpGet:
               path: '/orders'
@@ -282,7 +282,7 @@ Elapsed time:                  59.11 secs
 ```
 2.2. image 명도 변경한다 (19라인):
 ```
-				image: jinyoung/order:stable
+image: jinyoung/order:stable
 ```
 
 2.2 siege 터미널을 열어서 충분한 시간만큼 부하를 준다.
