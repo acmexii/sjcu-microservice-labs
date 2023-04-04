@@ -89,7 +89,7 @@ metadata:
 spec:
     containers:
     - name: siege
-    image: apexacme/siege-nginx
+      image: apexacme/siege-nginx
 EOF
 ```
 - 생성된 siege Pod 안쪽에서 정상작동 확인
