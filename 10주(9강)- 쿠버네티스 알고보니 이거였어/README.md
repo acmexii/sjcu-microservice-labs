@@ -40,7 +40,7 @@ kubectl get all  # 확인
 - 도커 허브에 저장된 주문 이미지으로 서비스 배포 및 확인하기
 
 ```
-kubectl create deploy order --image=jinyoung/monolith-order:v202105042
+kubectl create deploy order --image=ghcr.io/acmexii/order-liveness:latest
 kubectl get all  # 모든 객체 조회
 kubectl get po # pod 객체만 조회 (pod name 확인)
 ```
@@ -64,41 +64,13 @@ kubectl get service
 ```
 
 - Service 정보의 External IP가 Pending 상태에서 IP정보로 변경시까지 대기하기
-- 엔드포인트를 통해 서비스 확인 - http://(IP정보):8080/orders
+- 엔드포인트를 통해 서비스 확인 - http://(DNS정보):8080/orders
 
 
 접속테스트:
 ```
-# http a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080
-HTTP/1.1 200 
-Content-Type: application/hal+json;charset=UTF-8
-Date: Wed, 26 May 2021 06:26:06 GMT
-Transfer-Encoding: chunked
-
-{
-    "_links": {
-        "deliveries": {
-            "href": "http://a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/deliveries{?page,size,sort}",
-            "templated": true
-        },
-        "orders": {
-            "href": "http://a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/orders{?page,size,sort}",
-            "templated": true
-        },
-        "productOptions": {
-            "href": "http://a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/productOptions"
-        },
-        "products": {
-            "href": "http://a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/products{?page,size,sort}",
-            "templated": true
-        },
-        "profile": {
-            "href": "http://a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/profile"
-        }
-    }
-}
+# http a78bb72215adc4a7c9db56a0c9acc457-1497647582.ap-northeast-2.elb.amazonaws.com:8080/orders
 ```
-
 
 ### 주문서비스 인스턴스 확장(Scale-Out) 하기 (수동)
 
@@ -134,7 +106,7 @@ spec:
     spec:
       containers:
         - name: order
-          image: jinyoung/monolith-order:v20210504
+          image: ghcr.io/acmexii/order-liveness:latest
           ports:
             - containerPort: 8080        
 ```
