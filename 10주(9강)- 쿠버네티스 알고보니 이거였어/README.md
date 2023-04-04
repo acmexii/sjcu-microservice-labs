@@ -56,7 +56,7 @@ kubectl delete pod -l app=order
 - Pod를 삭제해도 새로운 Pod로 서비스가 재생성됨을 확인
 
 
-### 클라우드 외부에서도 접근 가능하도록 노출하기
+### 클라우드 외부에서도 접근 가능하도록 주문서비스 노출하기
 
 ```
 kubectl expose deploy order --type=LoadBalancer --port=8080
