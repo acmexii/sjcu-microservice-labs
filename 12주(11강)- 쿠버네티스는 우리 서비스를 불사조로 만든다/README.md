@@ -43,8 +43,37 @@ kubectl get all  # 확인
 
 ### 주문서비스 배포 및 라우터 생성
 
+- GitPod > Lab 폴더 마우스 오른쪽 클릭 > New File > order.yaml 입력
+- 아래 내용 복사하여 붙여넣기
+
 ```
-kubectl create deploy order --image=jinyoung/monolith-order:v20210504
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  labels:
+    app: order
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+    spec:
+      containers:
+        - name: order
+          image: ghcr.io/acmexii/order-liveness:latest
+          ports:
+            - containerPort: 8080 
+          resources:
+            requests:
+              cpu: "200m"    
+```
+
+```
 kubectl expose deploy order --port=8080
 ```
 
@@ -63,7 +92,7 @@ spec:
     image: apexacme/siege-nginx
 EOF
 ```
-  - 생성된 siege Pod 안쪽에서 정상작동 확인
+- 생성된 siege Pod 안쪽에서 정상작동 확인
 ```
 kubectl exec -it siege -- /bin/bash
 siege -c1 -t2S -v http://order:8080/orders
@@ -96,33 +125,6 @@ kubectl autoscale deployment order --cpu-percent=50 --min=1 --max=3
 NAME    REFERENCE          TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
 order   Deployment/order   <unknown>/20%   1         3         0          7s
 ```
-
-
-1.1 배포파일에 CPU 요청에 대한 값을 지정한다.
-- Gitpod의 order > kubernetes 폴더로 이동하여 deployment.yaml 파일을 수정한다.
-- 19 Line 의 image 을 **jinyoung/monolith-order:v20210602**
-  로 변경한다.
-- 21과 22 Line의 ports 와 readinessProbe 사이에 resources.requests.cpu: "200m"을 추가한다.
-- indent 에 주의하여 파일을 저장한다.
-
-```
-
-		ports:
-          - containerPort: 8080
-        resources:
-          requests:
-            cpu: "200m"
-        readinessProbe:
-
-```
-
-1.2 터미널을 열어서 변경된 yaml 파일을 사용하여 쿠버네티스에 배포한다.
-- cd order/kubernetes
-- kubectl delete -f deployment.yaml
-- kubectl apply -f deployment.yaml
-
-1.3 배포 완료 후 kubectl get deploy order -o yaml 명령을 쳐서 image 와 resources의 값이 정상적으로 설정되어있는지 확인
-- kubectl get po 실행하여 STATUS가 정상적으로 Running 상태 확인
 
 
 ### Auto Scale-Out 증명
