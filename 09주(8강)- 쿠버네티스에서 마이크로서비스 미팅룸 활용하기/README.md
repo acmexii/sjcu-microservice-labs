@@ -78,20 +78,47 @@ kubectl apply -f servce.yaml
 
 ### 쿠버네티스에 미팅룸(kafka) 설치
 
-#### Kubernetes 패키지 인스톨러인 Helm 을 먼저 로컬에 설치한다.
-
-- Helm(패키지 인스톨러) 설치
-```bash
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 > get_helm.sh
-chmod 700 get_helm.sh
-./get_helm.sh
 ```
-
-#### Kafka (namspace없이) 설치
-```bash
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
-helm install my-kafka bitnami/kafka
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-kafka
+spec:
+  selector:
+    app: kafka
+  ports:
+    - name: kafka
+      protocol: TCP
+      port: 9092
+      targetPort: 9092
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-kafka
+  labels:
+    app: kafka
+spec:
+  containers:
+    - name: my-kafka
+      image: bitnami/kafka:latest
+      ports:
+        - containerPort: 9092
+      env:  
+        - name: ALLOW_PLAINTEXT_LISTENER
+          value: "yes"   
+        - name: KAFKA_KRAFT_CLUSTER_ID
+          value: kafka_cluster_id_test1                  
+      volumeMounts:
+        - name: data
+          mountPath: /kafka/data
+  volumes:
+    - name: data
+      hostPath:
+        path: /tmp
+EOF
 ```
 
 #### Kafka 메시지 확인하기 
