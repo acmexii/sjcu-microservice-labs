@@ -78,6 +78,7 @@ kubectl apply -f servce.yaml
 
 ### 쿠버네티스에 미팅룸(kafka) 설치
 
+- 아래 YAML 스펙을 모두 복사하여 터미널에서 붙여넣고, 엔터키를 입력한다.
 ```
 kubectl apply -f - <<EOF
 apiVersion: v1
