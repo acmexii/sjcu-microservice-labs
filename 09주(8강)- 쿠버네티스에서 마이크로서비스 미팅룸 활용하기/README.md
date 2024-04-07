@@ -78,48 +78,18 @@ kubectl apply -f servce.yaml
 
 ### 쿠버네티스에 미팅룸(kafka) 설치
 
-- 아래 YAML 스펙을 모두 복사하여 터미널에서 붙여넣고, 엔터키를 입력한다.
+- 아래 커맨드를 복사하여 Kafka 설치 전, Zookeeper를 먼저 설치한다.
 ```
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Service
-metadata:
-  name: my-kafka
-spec:
-  selector:
-    app: kafka
-  ports:
-    - name: kafka
-      protocol: TCP
-      port: 9092
-      targetPort: 9092
-  type: ClusterIP
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: my-kafka
-  labels:
-    app: kafka
-spec:
-  containers:
-    - name: my-kafka
-      image: bitnami/kafka:latest
-      ports:
-        - containerPort: 9092
-      env:  
-        - name: ALLOW_PLAINTEXT_LISTENER
-          value: "yes"   
-        - name: KAFKA_KRAFT_CLUSTER_ID
-          value: kafka_cluster_id_test1                  
-      volumeMounts:
-        - name: data
-          mountPath: /kafka/data
-  volumes:
-    - name: data
-      hostPath:
-        path: /tmp
-EOF
+kubectl apply -f https://raw.githubusercontent.com/acmexii/demo/master/edu/zookeeper.yaml
+```
+- 조금 뒤 아래 커맨드로 Kafka를 이어서 설치한다.
+```
+kubectl apply -f https://raw.githubusercontent.com/acmexii/demo/master/edu/kafka.yaml
+```
+
+- 잠시뒤, 아래 Command로 Kubernetes에 설치된 Kafka Stack을 확인할 수 있다.
+```
+kubectl get all
 ```
 
 #### Kafka 메시지 확인하기 
