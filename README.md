@@ -25,7 +25,7 @@
 ### When Connecting 
 
 - Gitpod 인증화면이 나타나며 Gihub 계정을(Id/Pass) 입력한다.
-- 최초 접속시 내 핸드폰 인증이 이루어진다. (국가 선택 > 핸드폰 번호입력)
+- 최초 접속시, 몇가지 설문 정보 입력과 필요시 내 핸드폰 인증이 이루어진다. (국가 선택 > 핸드폰 번호입력)
 ![image](https://user-images.githubusercontent.com/35618409/187013335-cee187a1-cd43-4752-b881-424af1a9f2f9.png)
 
 
